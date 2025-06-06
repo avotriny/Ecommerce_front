@@ -1,44 +1,49 @@
-
-import {Routes, Route, useLocation } from 'react-router-dom';
-import { ThemeProvider } from './contexts/ThemeContext';
-import ScrollToTop from './utils/scrollToTop';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Loading from './Loading';
+import Notification from './Notification';
+import axios from 'axios'; 
+import Navbar from './Navbar/Navbar'
 import PageTransition from './utils/PageTransition';
-import Nav from './components/Nav';
-import Accueil from './components/Accueil';
-import Contact from './components/Contact';
-import Experience from './components/Experience';
-import Education from './components/Education';
-import Competence from './components/Competence';
-import Service from "./components/Service";
-import Footer from './components/Footer';
+import Accueil from './components/Accueil/accueil'
+import Categorie from './Dashboard/Categorie/Categorie';
 
-function App() {
-const location = useLocation(); 
 
+axios.defaults.baseURL = 'http://localhost:8000/';
+axios.defaults.headers.post['Content-Type'] = 'application/json';
+axios.defaults.headers.post['Accept'] = 'application/json';
+axios.defaults.withCredentials = true;
+axios.interceptors.request.use(function(config) {  
+    const token = localStorage.getItem('auth_token'); 
+    config.headers.Authorization = token ? `Bearer ${token}` : '';
+    return config;
+});
+
+const App = () => {
   return (
-
-    <ThemeProvider>
+<Router>
+      <Navbar/>
+      
+      <Loading />
+      <Notification />
       <PageTransition>
-
+      <Routes>
+      <Route path="/" element={<Accueil/>} />
+        <Route path="/categorie" element={<Categorie />} />
         
-        <Nav />
-    
-    <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Accueil />} />
-             <Route path="/education" element={<Education />} />
-             <Route path="/service" element={<Service />} />
-            <Route path="/contact" element={<Contact/>} />
-            <Route path="/competence" element={<Competence/>} /> 
-            <Route path="/experience" element={<Experience />} />
-           
-           
-          </Routes>
+        {/* <Route path="/shop" element={<Shop />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="*" element={<Page404 />} />
+        <Route element={<AdminPrivateRoutes />} >
+        <Route path="/dashboard/*" element={<Dashboard />} /> */}
+        {/* </Route> */}
 
-     <ScrollToTop />
-        <Footer />
+      </Routes>
       </PageTransition>
-    </ThemeProvider>
-  )
-}
+      </Router>
+      
 
-export default App
+  );
+};
+
+export default App;
