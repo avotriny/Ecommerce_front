@@ -1,0 +1,19 @@
+.MuiDataGrid-root{
+    border:none;
+    
+}
+.MuiDataGrid-cell{
+    border-bottom: none;
+}
+.name-column-cell {
+    color: blue;
+}
+.MuiDataGrid-columnHeaders{
+    background-color: #7106fd;
+    border-bottom: "none";
+}
+
+.MuiDataGrid-footerContainer{
+    background-color: #7106fd;
+    border-top: "none"
+}
