@@ -9,6 +9,7 @@ import './index.css';
 
 createRoot(document.getElementById('root')).render(
   <>
+     <CssBaseline />
     <ContextProvider>
       <Provider store={store}>
         <App />
