@@ -50,6 +50,12 @@ const reducer = (state, action) => {
         priceFilter: action.payload,
         filteredProduits: applyFilter(state.produits, action.payload),
       };
+
+      case 'LOGOUT':
+      return {
+        ...state,
+        currentUser: null
+      };
     
     case 'CLEAR_ADDRESS':
       return { ...state, addressFilter: null, priceFilter: 100, filteredProduits: state.produits };
