@@ -3,8 +3,11 @@ import axios from 'axios';
 import { addItem } from '../../redux/cartSlice';
 import { useDispatch } from 'react-redux';
 import { Search as SearchIcon, ShoppingCart, Heart } from 'lucide-react';
+import { useValue } from '../../context/ContextProvider';
+import Tooltip from '@mui/material/Tooltip';
 
 const Shop = () => {
+  const { state: { currentUser } } = useValue();
   const [produits, setProduits] = useState([]);
   const [filteredProduits, setFilteredProduits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,52 +29,73 @@ const Shop = () => {
 
   const dispatch = useDispatch();
 
-  // Chargement initial des données
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [prodRes, catRes, subRes] = await Promise.all([
+        const [prodRes, catRes, subRes, likeRes] = await Promise.all([
           axios.get('http://localhost:8000/api/produit'),
           axios.get('http://localhost:8000/api/categorie'),
           axios.get('http://localhost:8000/api/subcategorie'),
+          axios.get('http://localhost:8000/api/like'),
         ]);
 
-        const list = prodRes.data.produit;
+        // Build like map: prod_id => [user names]
+        const likesMap = {};
+        (likeRes.data.like || []).forEach(l => {
+          if (!likesMap[l.prod_id]) likesMap[l.prod_id] = [];
+          likesMap[l.prod_id].push(l.user.name || l.user.username);
+        });
+
+        // Initialize produits with like info
+        const list = (prodRes.data.produit || []).map(p => {
+          const users = likesMap[p.id] || [];
+          return {
+            ...p,
+            like: users.includes(currentUser?.name || currentUser?.username),
+            likeCount: users.length,
+            likeUsers: users,
+          };
+        });
+
         setProduits(list);
         setFilteredProduits(list);
 
-        // Catégories
-        const cats = [{ id: 'All', name: 'Toutes' }, ...catRes.data.categorie.map(c => ({ id: c.id, name: c.type_categorie }))];
-        setCategories(cats);
+        // Categories
+        setCategories([{ id: 'All', type_categorie: 'Toutes' }, ... (catRes.data.categorie || [])]);
 
-        // Sous-catégories par catégorie
-        const subs = subRes.data.subcategories;
+        // Subcategories
+        const subs = subRes.data.subcategorie || [];
         const mapSub = subs.reduce((acc, sc) => {
           if (!acc[sc.cat_id]) acc[sc.cat_id] = [];
-          acc[sc.cat_id].push({ id: sc.id, name: sc.name_categorie });
+          acc[sc.cat_id].push(sc);
           return acc;
         }, {});
         setSubcategories(mapSub);
 
-        // Couleurs, pointures, tailles
+        // Colors, sizes, points
         setCouleurs(['All', ...new Set(list.map(p => p.couleur).filter(Boolean))]);
         setPointures(['All', ...new Set(list.map(p => p.pointure).filter(Boolean))]);
         setTailles(['All', ...new Set(list.map(p => p.taille).filter(Boolean))]);
       } catch (err) {
-        console.error(err);
+        console.error('fetchData error:', err);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [currentUser]);
 
-  // Filtrage
   useEffect(() => {
     let temp = [...produits];
-    if (selectedCat !== 'All') temp = temp.filter(p => p.subcategorie?.categorie?.id === selectedCat);
-    if (selectedSubcat !== 'All') temp = temp.filter(p => p.subcat_id === selectedSubcat);
+   if (selectedCat !== 'All') {
+  const validSubs = subcategories[selectedCat] || [];
+  temp = temp.filter(p => validSubs.some(sc => sc.id === p.subcat_id));
+}
+if (selectedSubcat !== 'All') {
+  temp = temp.filter(p => p.subcat_id.toString() === selectedSubcat.toString());
+}
+
     if (selectedCouleur !== 'All') temp = temp.filter(p => p.couleur === selectedCouleur);
     if (selectedPointure !== 'All') temp = temp.filter(p => p.pointure === selectedPointure);
     if (selectedTaille !== 'All') temp = temp.filter(p => p.taille === selectedTaille);
@@ -85,57 +109,75 @@ const Shop = () => {
   }, [selectedCat, selectedSubcat, selectedCouleur, selectedPointure, selectedTaille, searchTerm, produits]);
 
   const handleAddToCart = produit => dispatch(addItem(produit));
-  const handleLike = produit => {
-    // TODO: implémenter logique de 'like'
-    console.log('Liked', produit.id);
+
+  const handleLike = async produit => {
+    if (!currentUser) return;
+    try {
+      const { data } = await axios.post(
+        `http://localhost:8000/api/produit/${produit.id}/like`,
+        {},
+        { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } }
+      );
+      setProduits(prev => prev.map(p => {
+        if (p.id === produit.id) {
+          const updatedUsers = data.like
+            ? [...p.likeUsers, currentUser.name || currentUser.username]
+            : p.likeUsers.filter(u => u !== (currentUser.name || currentUser.username));
+          return { ...p, like: data.like, likeCount: data.likeCount, likeUsers: updatedUsers };
+        }
+        return p;
+      }));
+    } catch (err) {
+      console.error('handleLike error:', err);
+    }
   };
 
   return (
-    <main className="flex flex-col h-screen bg-gray-50">
-      {/* Barre de recherche */}
-      <div className="p-4 bg-white shadow flex items-center space-x-2">
-        <SearchIcon className="text-gray-500" />
-        <input
-          type="text"
-          placeholder="Rechercher un produit..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="w-full pl-2 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
-        />
+    <main className="flex flex-col h-screen bg-gray-50 pt-16">
+      <div className="p-4 bg-white shadow flex items-center justify-between">
+        <div className="flex items-center">
+          <SearchIcon className="text-gray-500" />
+          <input
+            className="ml-2 w-64 p-2 border rounded-lg focus:outline-none"
+            type="text"
+            placeholder="Rechercher un produit..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
-
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar filtres */}
-        <aside className="w-1/4 p-6 bg-white shadow-lg overflow-y-auto space-y-6">
-          {/* Catégorie */}
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Catégorie</h3>
-            <select
-              value={selectedCat}
-              onChange={e => { setSelectedCat(e.target.value); setSelectedSubcat('All'); }}
-              className="w-full p-2 border rounded-lg"
-            >
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          {/* Sous-catégorie */}
-          {selectedCat !== 'All' && (
+        <aside className="w-1/4 p-6 bg-white shadow-lg overflow-y-auto">
+          <h2 className="font-semibold mb-4">Filtres</h2>
+          <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Sous-catégorie</h3>
+              <label className="block mb-1">Catégorie</label>
               <select
-                value={selectedSubcat}
-                onChange={e => setSelectedSubcat(e.target.value)}
-                className="w-full p-2 border rounded-lg"
+                value={selectedCat}
+                onChange={e => { setSelectedCat(e.target.value); setSelectedSubcat('All'); }}
+                className="w-full p-2 border rounded"
               >
-                <option value="All">Toutes</option>
-                {subcategories[selectedCat]?.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
+                {categories.map(c => <option key={c.id} value={c.id}>{c.type_categorie}</option>)}
               </select>
             </div>
-          )}
-          {/* Autres filtres... */}
+            {selectedCat !== 'All' && (
+              <div>
+                <label className="block mb-1">Sous-catégorie</label>
+                <select
+                  value={selectedSubcat}
+                  onChange={e => setSelectedSubcat(e.target.value)}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="All">Toutes</option>
+                  {subcategories[selectedCat]?.map(sc => (
+                    <option key={sc.id} value={sc.id}>{sc.name_categorie}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {/* Couleur, Taille, Pointure identiques à l'initialisation */}
+          </div>
         </aside>
-
-        {/* Grille produits */}
         <section className="flex-1 p-6 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center h-full">
@@ -144,7 +186,7 @@ const Shop = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredProduits.map(p => (
-                <div key={p.id} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden flex flex-col">
+                <div key={p.id} className="bg-white rounded-2xl shadow-lg flex flex-col">
                   <div className="relative group">
                     {p.promotion && (
                       <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
@@ -152,19 +194,25 @@ const Shop = () => {
                       </span>
                     )}
                     <img
-                      src={`http://localhost:8000/${p.images}`}
+                      src={p.images ? `http://localhost:8000/${p.images}` : ''}
                       alt={p.nom_prod}
                       className="h-48 w-full object-cover group-hover:scale-105 transition-transform"
                     />
-                    {/* Like button */}
-                    <button
-                      onClick={() => handleLike(p)}
-                      className="absolute top-3 right-3 bg-white p-1 rounded-full shadow hover:bg-pink-100 transition"
-                    >
-                      <Heart className="text-pink-500" size={18} />
-                    </button>
+                    <Tooltip title={p.likeUsers.join(', ') || 'Aucun like'} arrow>
+                      <button
+                        onClick={() => handleLike(p)}
+                        className="absolute top-3 right-3 flex items-center bg-white p-1 rounded-full shadow hover:bg-pink-100 transition"
+                      >
+                        <Heart
+                          size={18}
+                          className={p.like ? 'text-red-500 fill-current' : 'text-gray-400'}
+                        />
+                        {p.likeCount > 0 && (
+                          <span className="ml-1 text-sm font-medium text-gray-700">{p.likeCount}</span>
+                        )}
+                      </button>
+                    </Tooltip>
                   </div>
-
                   <div className="p-4 flex flex-col flex-grow">
                     <h3 className="text-lg font-bold mb-1 truncate">{p.nom_prod}</h3>
                     <p className="text-gray-600 text-sm mb-2 line-clamp-2">{p.desc_prod}</p>
