@@ -47,15 +47,15 @@ const Produit = () => {
   return (
     <main className="flex items-center justify-center py-12 bg-gradient-to-br from-purple-50 to-purple-100 min-h-screen">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-10">
-        <h2 className="text-3xl font-extrabold text-center text-purple-700 mb-8 uppercase tracking-wide">Ajout de Produit</h2>
+        <h2 className="text-3xl font-extrabold text-center text-green-500 mb-8 uppercase tracking-wide">Ajout de Produit</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Catégorie */}
           <div>
             <label htmlFor="subcat_id" className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
             <div className="relative">
-              <Grid className="absolute top-3 left-3 text-purple-500" />
-              <select id="subcat_id" name="subcat_id" value={produitInput.subcat_id} onChange={handleInput} required className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-purple-200 focus:ring-2 transition">
+              <Grid className="absolute top-3 left-3 text-green-500" />
+              <select id="subcat_id" name="subcat_id" value={produitInput.subcat_id} onChange={handleInput} required className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-green-500 focus:ring-purple-200 focus:ring-2 transition">
                 <option value="" disabled>Sélectionnez une catégorie</option>
                 {subcategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name_categorie}</option>)}
               </select>
@@ -150,8 +150,8 @@ const Produit = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Image du produit</label>
             <div className="flex items-center space-x-4">
-              <Image className="text-purple-600" size={24} />
-              <label className="cursor-pointer bg-purple-600 text-white px-4 py-2 rounded-full hover:bg-purple-700 transition">
+              <Image className="text-green-500" size={24} />
+              <label className="cursor-pointer bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-600 transition">
                 Choisir une image
                 <input type="file" name="images" accept="image/*" onChange={handleInput} className="sr-only" />
               </label>
@@ -160,7 +160,7 @@ const Produit = () => {
           </div>
 
           {/* Submit Button */}
-          <button type="submit" className="w-full py-4 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-lg uppercase tracking-wide hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-4 focus:ring-purple-300 transition">
+          <button type="submit" className="w-full py-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-lg uppercase tracking-wide hover:from-indigo-600 hover:to-green-500 focus:outline-none focus:ring-4 focus:ring-purple-300 transition">
             Enregistrer le produit
           </button>
         </form>
