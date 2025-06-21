@@ -5,10 +5,10 @@ import { Cancel as CancelIcon } from '@mui/icons-material';
 
 const links = [
   { name: 'home', path: '/' },
-  { name: 'dashboard', path: '/dashboard' },
-  { name: 'categorie', path: '/dashboard/categorie' },
+  { name: 'categorie', path: '/categorie' },
   { name: 'shop', path: '/shop' },
-  { name: 'work', path: '/work' },
+  { name: 'produit', path: '/about' },
+  { name: 'A Propos', path: '/about' },
   { name: 'contact', path: '/contact' },
 ];
 
