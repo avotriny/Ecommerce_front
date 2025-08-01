@@ -68,7 +68,7 @@ const Main = () => {
           <div className="space-y-4">
             {recentUsers.map(u => (
               <div key={u.id} className="flex items-center space-x-4">
-                <img src={`http://localhost:8000/${u.avatar}`} alt={u.name} className="w-14 h-14 rounded-full object-cover" />
+                <img src={`http://localhost:8000/storage/${u.avatar}`} alt={u.name} className="w-14 h-14 rounded-full object-cover" />
                 <div>
                   <p className="font-medium text-lg">{u.name}</p>
                   <p className="text-gray-500 text-sm">Inscrit le {moment(u.created_at).format('LL')}</p>
@@ -82,11 +82,11 @@ const Main = () => {
           <div className="space-y-4">
             {recentCommandes.map(c => (
               <div key={c.id} className="flex items-center space-x-4">
-                <img src={`http://localhost:8000/${c.produit?.images}`} alt={c.produit?.nom_prod} className="w-14 h-14 rounded object-cover" />
+                <img src={c.produit?.image ? `http://localhost:8000/${c.produit?.image}` : ''} alt={c.produit?.nom_prod} className="w-14 h-14 rounded object-cover" />
                 <div>
                   <p className="font-medium text-lg">Commande N°{c.id}</p>
                   <p className="text-gray-700">{c.produit?.nom_prod}</p>
-                  <p className="text-gray-700">Quantite {c.quantite}</p>
+                  <p className="text-gray-700">Quantité : {c.lignes[0]?.quantite}</p>
                   <p className="text-gray-500 text-sm">{moment(c.created_at).format('LL')}</p>
                 </div>
               </div>
