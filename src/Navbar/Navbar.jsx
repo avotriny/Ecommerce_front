@@ -13,7 +13,9 @@ import {
   TextField,
   DialogActions,
   Button,
-  CircularProgress
+  CircularProgress,
+  Badge,
+  IconButton
 } from '@mui/material';
 import axios from 'axios';
 
@@ -21,7 +23,7 @@ const links = [
   { name: 'home', path: '/' },
   { name: 'categorie', path: '/categorie' },
   { name: 'shop', path: '/shop' },
-  { name: 'produit', path: '/about' },
+  { name: 'produit', path: '/produit' },
   { name: 'A Propos', path: '/about' },
   { name: 'contact', path: '/contact' },
 ];
@@ -31,6 +33,9 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [loadingLogout, setLoadingLogout] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+
   const dropdownRef = useRef();
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,14 +43,16 @@ export default function Navbar() {
   const { state: { currentUser }, dispatch: ctxDispatch } = useValue();
   const totalQuantity = useSelector(s => s.cart.totalQuantity);
 
-  const [profileData, setProfileData] = useState({ name: '', avatar: '' });
-
+  // Préremplissage du formulaire de profil
+const [profileName, setProfileName] = useState('');
   useEffect(() => {
     if (currentUser) {
-      setProfileData({ name: currentUser.name, avatar: currentUser.avatar });
+      setProfileName(currentUser.name || '');
+      setAvatarFile(null);
     }
   }, [currentUser]);
 
+  // Fermer dropdown
   useEffect(() => {
     const handleClickOutside = e => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -56,140 +63,197 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const openProfileModal = () => {
-    setProfileModalOpen(true);
-    setMenuOpen(false);
-  };
+  // Handlers
+  const openProfileModal = () => { setProfileModalOpen(true); setMenuOpen(false); };
   const closeProfileModal = () => setProfileModalOpen(false);
+  const handleNameChange = e => setProfileName(e.target.value);
+  const handleFileChange = e => setAvatarFile(e.target.files[0]);
 
-  const handleProfileChange = e => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
-  };
-
+  // Sauvegarde profil
   const handleProfileSave = async () => {
+    if (!profileName.trim()) {
+      alert('Le nom est requis.');
+      return;
+    }
+    if (!avatarFile) {
+      alert('Veuillez sélectionner une image d\'avatar.');
+      return;
+    }
     setProfileLoading(true);
     try {
-      const { data } = await axios.put(
+      const formData = new FormData();
+      formData.append('name', profileName);
+      formData.append('avatar', avatarFile);
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      };
+      const { data } = await axios.post(
         'http://localhost:8000/api/profile',
-        { name: profileData.name, avatar: profileData.avatar },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } }
+        formData,
+        config
       );
       ctxDispatch({ type: 'UPDATE_USER', payload: data.user });
       localStorage.setItem('currentUser', JSON.stringify(data.user));
       closeProfileModal();
     } catch (err) {
       console.error('Profile update error', err);
+      alert('Erreur lors de la mise à jour du profil.');
     } finally {
       setProfileLoading(false);
     }
   };
+  const handleLogout = async () => {
+    const ok = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
+    if (!ok) return;
 
-  const handleLogout = () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) return;
-    reduxDispatch({ type: 'auth/logout' });
-    ctxDispatch({ type: 'LOGOUT' });
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('auth_token');
-    navigate('/');
+    setLoadingLogout(true);
+    try {
+      ctxDispatch({ type: 'LOGOUT' });
+      localStorage.removeItem('auth_token');
+      setMenuOpen(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Logout error', err);
+    } finally {
+      setLoadingLogout(false);
+    }
   };
 
   return (
     <>
       <header className="fixed w-full bg-white shadow-md z-50">
-        <div className="container mx-auto px-4 flex items-center justify-between h-16 text-gray-900">
-          <button className="xl:hidden p-2" onClick={() => setIsOpen(true)}>
-            <MenuIcon fontSize="large" />
-          </button>
-          <Link to="/" className="text-2xl font-bold max-xl:hidden">
-            <img src="./images/shopnakay.jpg" alt="shopnakay" className="w-12 h-12 rounded-full" />
-          </Link>
-          <nav className="hidden xl:flex space-x-8 items-center">
-            {links.map(link => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className={
-                  `capitalize font-medium hover:text-green-500 transition ` +
-                  (location.pathname.startsWith(link.path)
-                    ? 'text-green-500 border-b-2 border-green-500 pb-1'
-                    : 'text-gray-700')
-                }
-              >
-                {link.name}
-              </Link>
-            ))}
-            <Link to="/cart" className="relative flex items-center p-2 hover:text-green-500 transition">
-              <ShoppingCart />
-              {totalQuantity > 0 && (
-                <>
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 opacity-75 animate-ping" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center">
-                    {totalQuantity}
-                  </span>
-                </>
-              )}
+        <div className="container mx-auto px-4 flex items-center justify-between h-16">
+          {/* Burger + Logo */}
+          <div className="flex items-center gap-4">
+            <button className="xl:hidden p-2" onClick={() => setIsOpen(true)}>
+              <MenuIcon fontSize="large" />
+            </button>
+            <Link to="/" className="flex items-center">
+              <img
+                src="./images/shopnakay.jpg"
+                alt="shopnakay"
+                className="w-10 h-10 rounded-full mr-2"
+              />
+              <span className="text-2xl font-bold text-green-700">
+                Shop'nakay
+              </span>
             </Link>
-            {!currentUser ? (
-              <Link to="/auth" className="px-4 py-2 bg-green-500 text-white rounded">
-                Se connecter
-              </Link>
-            ) : (
-              <div ref={dropdownRef} className="relative">
-                <Avatar src={`http://localhost:8000/${currentUser?.avatar}`} className="cursor-pointer" onClick={() => setMenuOpen(o => !o)} />
-                {menuOpen && (
-                  <ul className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg">
+          </div>
+
+          {/* Liens + actions */}
+          <nav className="flex items-center space-x-6">
+            <div className="hidden xl:flex space-x-8">
+              {links.map(link => (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  className={
+                    `capitalize font-medium hover:text-green-500 transition ` +
+                    (location.pathname.startsWith(link.path)
+                      ? 'text-green-500 border-b-2 border-green-500 pb-1'
+                      : 'text-gray-700')
+                  }
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+
+            {/* Panier */}
+            <Link to="/cart" className="relative">
+              <Badge badgeContent={totalQuantity} color="error">
+                <ShoppingCart fontSize="large" />
+              </Badge>
+            </Link>
+
+            {/* Avatar / Menu */}
+            <div ref={dropdownRef} className="relative">
+<IconButton
+  onClick={() => setMenuOpen(o => !o)}
+  disabled={loadingLogout}
+>
+  {currentUser ? (
+    <Avatar
+      src={`http://localhost:8000/storage/${currentUser.avatar}`}
+      alt={currentUser.name}
+    >
+      {currentUser.name.charAt(0).toUpperCase()}
+    </Avatar>
+  ) : (
+    <Avatar />
+  )}
+</IconButton>
+              {menuOpen && (
+                <ul className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg">
+                  {!currentUser && (
                     <li>
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={openProfileModal}>
-                        Changer profil
-                      </button>
-                    </li>
-                    <li>
-                      <Link to="/dashboard" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setMenuOpen(false)}>
-                        Dashboard
+                      <Link
+                        to="/auth"
+                        className="block px-4 py-2 hover:bg-gray-100"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Se connecter
                       </Link>
                     </li>
-                    <li>
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={handleLogout}>
-                        Logout
-                      </button>
-                    </li>
-                  </ul>
-                )}
-              </div>
-            )}
+                  )}
+                  {currentUser && (
+                    <>
+                      <li>
+                        <button
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                          onClick={openProfileModal}
+                        >
+                          Modifier profil
+                        </button>
+                      </li>
+                      <li>
+                        <Link
+                          to="/dashboard"
+                          className="block px-4 py-2 hover:bg-gray-100"
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          Dashboard
+                        </Link>
+                      </li>
+                      <li>
+                        <button
+                          className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-100"
+                          onClick={handleLogout}
+                        >
+                          {loadingLogout ? 'Déconnexion...' : 'Logout'}
+                        </button>
+                      </li>
+                    </>
+                  )}
+                </ul>
+              )}
+            </div>
           </nav>
         </div>
         <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
       </header>
 
-      <Dialog open={profileModalOpen} onClose={closeProfileModal} fullWidth maxWidth="xs">
+
+      {currentUser && (
+        <Dialog open={profileModalOpen} onClose={closeProfileModal} fullWidth maxWidth="xs">
         <DialogTitle>Modifier le profil</DialogTitle>
+        <img src={`http://localhost:8000/storage/${currentUser.avatar}`} className='ml-20 rounded-full w-14 h-14 p-2'/>
         <DialogContent>
-          {profileData.avatar && (
-            <div className="flex justify-center mb-4">
-              <img
-                src={`http://localhost:8000/${profileData.avatar}`}
-                alt="Avatar actuel"
-                className="w-20 h-20 rounded-full object-cover"
-              />
-            </div>
-          )}
           <TextField
             label="Nom"
-            name="name"
             fullWidth
             margin="dense"
-            value={profileData.name}
-            onChange={handleProfileChange}
+            value={profileName}
+            onChange={handleNameChange}
           />
-          <TextField
-            label="Avatar URL (chemin relatif)"
-            name="avatar"
-            fullWidth
-            margin="dense"
-            value={profileData.avatar}
-            onChange={handleProfileChange}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="mt-2"
           />
         </DialogContent>
         <DialogActions>
@@ -198,7 +262,7 @@ export default function Navbar() {
             {profileLoading ? <CircularProgress size={20} /> : 'Enregistrer'}
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog>)}
     </>
   );
 }

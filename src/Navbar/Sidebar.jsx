@@ -7,7 +7,7 @@ const links = [
   { name: 'home', path: '/' },
   { name: 'categorie', path: '/categorie' },
   { name: 'shop', path: '/shop' },
-  { name: 'produit', path: '/about' },
+  { name: 'produit', path: '/produit' },
   { name: 'A Propos', path: '/about' },
   { name: 'contact', path: '/contact' },
 ];
