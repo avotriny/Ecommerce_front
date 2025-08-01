@@ -56,14 +56,15 @@ const Login = () => {
         navigate('/registration/confirm', { state: { email: dataUser.email } });
       }
     } catch (error) {
-      dispatch({
-        type: 'UPDATE_ALERT',
-        payload: {
-          open: true,
-          severity: 'error',
-          message: error.message || 'Une erreur est survenue.'
-        }
-      });
+      const apiMessage = error.response?.data?.message;
+    dispatch({
+      type: 'UPDATE_ALERT',
+      payload: {
+       open: true,
+      severity: 'error', 
+        message: apiMessage || error.message || 'Une erreur est survenue.'
+      }
+})
     } finally {
       setLoading(false);
     }
