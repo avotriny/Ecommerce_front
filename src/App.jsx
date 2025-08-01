@@ -12,6 +12,7 @@ import Login from './Auth/Auth';
 import RegistrationVerify from './Auth/RegistrationVerify';
 import RegistrationConfirm from './Auth/RegistrationConfirm';
 import axios from 'axios';
+import Produit from './Dashboard/Produit/Produit';
 
 axios.defaults.baseURL = 'http://localhost:8000/';
 axios.defaults.headers.post['Content-Type'] = 'application/json';
@@ -31,7 +32,9 @@ export default function App() {
       <PageTransition>
         <Routes>
           <Route path="/dashboard/*" element={<Dashboard />} />
+
           <Route path="/*" element={<Client />} />
+          {/* <Route path="/produit" element={<Produit />} /> */}
           <Route path="/401" element={<UnauthorizedPage />} />
           <Route path="/403" element={<ForbiddenPage />} />
           <Route path="*" element={<NotFoundPage />} />
