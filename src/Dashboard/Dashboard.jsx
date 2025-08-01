@@ -4,10 +4,9 @@ import SideList from './SideList';
 import { useValue } from '../context/ContextProvider';
 import { FiMenu, FiHome } from 'react-icons/fi';
 import Categorie from './Categorie/Categorie'
-import Produit from './Produit/Produit';
 import Users from './users/Users'
 import Main from './Main/Main'
-// import Commande from '../components/Commande/Commande';
+import ListProduit from './Produit/ListProduit';
 
 function RequireAuth({ children }) {
   const { state: { currentUser } } = useValue();
@@ -48,7 +47,7 @@ export default function Dashboard() {
               <Route path="user" element={<RequireAdmin><Users /></RequireAdmin>} />
               <Route path="main" element={<RequireAdmin><Main /></RequireAdmin>} />
               <Route path="categorie" element={<Categorie />} />
-              <Route path="produit" element={<Produit />} />
+              <Route path="produit" element={<ListProduit />} />
               {/* <Route path="commande" element={<Commande />} /> */}
               <Route path="*" element={<div>Bienvenue sur le Dashboard</div>} />
             </Routes>
