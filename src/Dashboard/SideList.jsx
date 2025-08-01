@@ -58,7 +58,7 @@ const SideList = ({ open, setOpen }) => {
       </nav>
       <div className="px-4 mt-4 text-center">
         <img
-          src={currentUser?.avatar}
+          src={`http://localhost:8000/storage/${currentUser.avatar}`}
           alt={currentUser?.name}
           className={`rounded-full object-cover ${open ? 'h-24 w-24' : 'h-10 w-10'}`}
         />
