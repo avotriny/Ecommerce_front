@@ -1,4 +1,3 @@
-// src/components/Cart.js
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
@@ -19,17 +18,15 @@ export default function Cart() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Récupérer la géolocalisation de l'utilisateur
+  // Géolocalisation
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLatitude(position.coords.latitude);
-          setLongitude(position.coords.longitude);
+        (pos) => {
+          setLatitude(pos.coords.latitude);
+          setLongitude(pos.coords.longitude);
         },
-        () => {
-          console.warn('Géolocalisation non disponible ou refusée.');
-        }
+        () => console.warn('Géo non dispo')
       );
     }
   }, []);
@@ -44,25 +41,34 @@ export default function Cart() {
     setError('');
 
     try {
-      let checkoutUrl = '';
-      for (const item of items) {
-        const response = await axios.post('http://localhost:8000/api/commande', {
+      // Construction du payload avec tous les produits
+      const payload = {
+        nom,
+        email,
+        phone,
+        adresse,
+        latitude,
+        longitude,
+        products: items.map((item) => ({
           prod_id: item.id,
-          quantite: item.quantity,
-          nom,
-          email,
-          phone,
-          adresse,
-          latitude,
-          longitude
-        });
-        checkoutUrl = response.data.checkoutUrl;
-      }
+          quantite: item.quantity
+        }))
+      };
+
+      // Envoi d'une seule requête
+      const res = await axios.post(
+        'http://localhost:8000/api/commande',
+        payload
+      );
+      const checkoutUrl = res.data.checkoutUrl;
+
+      // Vider le panier et redirection
       dispatch(clearCart());
+      localStorage.removeItem('cart');
       window.location.href = checkoutUrl;
     } catch (err) {
-      console.error(err);
-      setError('❌ Une erreur est survenue, veuillez réessayer.');
+      console.error('Erreur commande', err);
+      setError('❌ Une erreur est survenue, réessayez.');
     } finally {
       setLoading(false);
     }
@@ -75,14 +81,14 @@ export default function Cart() {
         <h2 className="text-2xl font-semibold text-gray-600 mb-2">
           Votre panier est vide
         </h2>
-        <p className="text-gray-500">Ajoutez des produits pour commencer !</p>
+        <p className="text-gray-500">Ajoutez des produits pour commencer !</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-5xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-50">
-      {/* Liste des articles */}
+      {/* Articles */}
       <div className="md:col-span-2 space-y-4">
         <h1 className="text-3xl font-bold">Panier ({totalQuantity} articles)</h1>
         {items.map((item) => {
@@ -102,11 +108,23 @@ export default function Cart() {
                 <h2 className="text-lg font-medium mb-1">{item.nom_prod}</h2>
                 <p className="text-gray-500 mb-2 truncate">{item.desc_prod}</p>
                 <div className="flex items-center space-x-4">
-                  <span className="font-semibold text-green-600">€{unit.toFixed(2)}</span>
+                  <span className="font-semibold text-green-600">
+                    €{unit.toFixed(2)}
+                  </span>
                   <div className="flex items-center border rounded-lg overflow-hidden">
-                    <button onClick={() => handleChange(item.id, -1)} className="px-3 py-1 hover:bg-gray-100">−</button>
+                    <button
+                      onClick={() => handleChange(item.id, -1)}
+                      className="px-3 py-1 hover:bg-gray-100"
+                    >
+                      −
+                    </button>
                     <span className="px-4 py-1">{item.quantity}</span>
-                    <button onClick={() => handleChange(item.id, +1)} className="px-3 py-1 hover:bg-gray-100">+</button>
+                    <button
+                      onClick={() => handleChange(item.id, +1)}
+                      className="px-3 py-1 hover:bg-gray-100"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
               </div>
@@ -114,26 +132,68 @@ export default function Cart() {
             </div>
           );
         })}
-        <button onClick={() => dispatch(clearCart())} className="mt-4 text-red-600 hover:underline">
+        <button
+          onClick={() => {
+            dispatch(clearCart());
+            localStorage.removeItem('cart');
+          }}
+          className="mt-4 text-red-600 hover:underline"
+        >
           Vider le panier
         </button>
       </div>
 
-      {/* Récapitulatif & formulaire */}
+      {/* Récap & Formulaire */}
       <div className="bg-white rounded-lg shadow-lg p-6 space-y-6 sticky top-6">
         <h2 className="text-2xl font-semibold">Récapitulatif</h2>
         <div className="flex justify-between">
-          <span>Sous-total</span>
+          <span>Sous‑total</span>
           <span className="font-bold">€{total.toFixed(2)}</span>
         </div>
         <hr />
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <p className="text-red-600">{error}</p>}
-          <input type="text" placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} required className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
-          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
-          <input type="tel" placeholder="Téléphone" value={phone} onChange={(e) => setPhone(e.target.value)} required className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
-          <input type="text" placeholder="Adresse de livraison" value={adresse} onChange={(e) => setAdresse(e.target.value)} required className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200" />
-          <button type="submit" disabled={loading} className={`w-full py-3 text-white rounded-lg transition ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>{loading ? 'En cours...' : 'Passer à la caisse'}</button>
+          <input
+            type="text"
+            placeholder="Nom complet"
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+            required
+            className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
+          <input
+            type="tel"
+            placeholder="Téléphone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+            className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
+          <input
+            type="text"
+            placeholder="Adresse de livraison"
+            value={adresse}
+            onChange={(e) => setAdresse(e.target.value)}
+            required
+            className="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 text-white rounded-lg transition ${
+              loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {loading ? 'En cours...' : 'Passer à la caisse'}
+          </button>
         </form>
       </div>
     </div>
