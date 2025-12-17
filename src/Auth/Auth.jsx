@@ -15,7 +15,7 @@ const Login = () => {
 
   const [dataUser, setDataUser] = useState({
     name: '',
-    email: '',
+    email: ' ',
     password: '',
     password_confirmation: ''
   });

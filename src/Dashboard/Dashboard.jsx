@@ -7,7 +7,8 @@ import Categorie from './Categorie/Categorie'
 import Users from './users/Users'
 import Main from './Main/Main'
 import ListProduit from './Produit/ListProduit';
-
+import Produit from './Produit/Produit';
+import CategoryForm from './Categorie/CategorieForm';
 function RequireAuth({ children }) {
   const { state: { currentUser } } = useValue();
   return currentUser ? children : <Navigate to="/401" replace />;
@@ -47,7 +48,11 @@ export default function Dashboard() {
               <Route path="user" element={<RequireAdmin><Users /></RequireAdmin>} />
               <Route path="main" element={<RequireAdmin><Main /></RequireAdmin>} />
               <Route path="categorie" element={<Categorie />} />
+              <Route path="categorie/new" element={<CategoryForm />} />
+              <Route path="categorie/:id/edit" element={<CategoryForm />} />
               <Route path="produit" element={<ListProduit />} />
+              <Route path="produit/new" element={<Produit />} />
+              <Route path="produit/:id/edit" element={<Produit />} />
               {/* <Route path="commande" element={<Commande />} /> */}
               <Route path="*" element={<div>Bienvenue sur le Dashboard</div>} />
             </Routes>

@@ -36,6 +36,26 @@ export default function ListProduit() {
 
   useEffect(() => { fetchProducts(); }, []);
 
+  const handleDelete = async (id) => {
+    const confirm = window.confirm("Voulez-vous vraiment supprimer ce produit ?");
+    if (!confirm) return;
+  
+    dispatch({ type: 'START_LOADING' });
+    try {
+      const token = localStorage.getItem('auth_token');
+      await axios.delete(`http://localhost:8000/api/produit/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRows(rows.filter(p => p.id !== id));
+      dispatch({ type: 'UPDATE_ALERT', payload: { open: true, severity: 'success', message: 'Produit supprimé !' } });
+    } catch (err) {
+      dispatch({ type: 'UPDATE_ALERT', payload: { open: true, severity: 'error', message: err.response?.data?.message || 'Erreur lors de la suppression.' } });
+    } finally {
+      dispatch({ type: 'END_LOADING' });
+    }
+  };
+  
+
   // Filtrer selon la recherche
   const filtered = useMemo(() => rows.filter(p =>
     p.nom_prod.toLowerCase().includes(search.toLowerCase()) ||
@@ -102,7 +122,7 @@ export default function ListProduit() {
             <Download className="w-4 h-4 mr-1" /> XLSX
           </button>
           <button
-            onClick={() => navigate('/admin/produit/new')}
+            onClick={() => navigate('/dashboard/produit/new')}
             className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow"
           >
             <Plus className="w-4 h-4 mr-2" /> Nouveau
@@ -139,7 +159,7 @@ export default function ListProduit() {
                       <Menu.Button className="p-1 hover:bg-gray-100 rounded">…</Menu.Button>
                       <Menu.Items className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg z-10">
                         <Menu.Item>{({ active }) => (
-                          <button onClick={()=>navigate(`/admin/produit/${p.id}/edit`)}
+                          <button onClick={()=>navigate(`/dashboard/produit/${p.id}/edit`)}
                             className={`${active?'bg-gray-100':''} flex items-center w-full px-4 py-2 text-sm text-gray-700`}>
                             <Edit2 className="w-4 h-4 mr-2"/> Éditer
                           </button>
