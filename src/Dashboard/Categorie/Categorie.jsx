@@ -1,127 +1,148 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useValue } from "../../context/ContextProvider";
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { Menu } from '@headlessui/react';
+import { Edit2, Trash2, Plus, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useValue } from '../../context/ContextProvider';
 
-const Categorie = () => {
-  // 1. On nomme la propriété d'état "nom_categorie" pour coller au name de l'input
-  const [categorieInput, setCategorie] = useState({ nom_categorie: "" });
-  const { state, dispatch } = useValue();
+const CategoriesList = () => {
+  const [rows, setRows] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { dispatch } = useValue();
+  const navigate = useNavigate();
 
-  // 2. Gestion du champ : on met à jour l'état en fonction du name/value
-  const handleInput = (e) => {
-    const { name, value } = e.target;
-    setCategorie((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // 3. Fonction asynchrone pour poster la nouvelle catégorie
-  const AddCategorie = async (e) => {
-    e.preventDefault();
-    // On signale le chargement
-    dispatch({ type: "START_LOADING" });
-
+  const fetchCategories = async () => {
+    setLoading(true);
     try {
-      // Préparation des données
-      const formData = new FormData();
-      formData.append("type_categorie", categorieInput.nom_categorie);
-
-      // Appel HTTP
-      const response = await axios.post(
-        "http://localhost:8000/api/categorie",
-        formData
-      );
-
-      // Si la réponse est OK (status 200 à 299), on affiche un message de succès
-      if (response.status >= 200 && response.status < 300) {
-        dispatch({
-          type: "UPDATE_ALERT",
-          payload: {
-            open: true,
-            severity: "success",
-            message: "La catégorie a été enregistrée avec succès.",
-          },
-        });
-        // On peut remettre le champ à vide
-        setCategorie({ nom_categorie: "" });
-      } else {
-        // Cas improbable, mais on gère quand même
-        dispatch({
-          type: "UPDATE_ALERT",
-          payload: {
-            open: true,
-            severity: "error",
-            message:
-              "La requête s'est terminée avec le statut " +
-              response.status +
-              ". Veuillez réessayer.",
-          },
-        });
-      }
+      const res = await axios.get('http://localhost:8000/api/categorie');
+      setRows(res.data.categorie || []);
     } catch (err) {
-      // Gestion d'erreur : on affiche le message retourné par l'API (si disponible)
       dispatch({
-        type: "UPDATE_ALERT",
+        type: 'UPDATE_ALERT',
         payload: {
           open: true,
-          severity: "error",
-          message: err.response?.data?.message || err.message,
+          severity: 'error',
+          message: 'Erreur lors du chargement des catégories',
         },
       });
     } finally {
-      // On arrête l'indicateur de chargement quelle que soit l'issue
-      dispatch({ type: "END_LOADING" });
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const filtered = useMemo(
+    () =>
+      rows.filter((c) =>
+        c.type_categorie
+          .toLowerCase()
+          .includes(search.toLowerCase())
+      ),
+    [rows, search]
+  );
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Supprimer cette catégorie ?')) return;
+
+    try {
+      await axios.delete(`http://localhost:8000/api/categorie/${id}`);
+      dispatch({
+        type: 'UPDATE_ALERT',
+        payload: {
+          open: true,
+          severity: 'success',
+          message: 'Catégorie supprimée',
+        },
+      });
+      fetchCategories();
+    } catch {
+      dispatch({
+        type: 'UPDATE_ALERT',
+        payload: {
+          open: true,
+          severity: 'error',
+          message: 'Suppression impossible',
+        },
+      });
     }
   };
 
   return (
-    <main className="w-full h-screen bg-gray-50 flex flex-col">
-      <form
-        onSubmit={AddCategorie}
-        id="CATEGORIE_FORM"
-        className="m-20 t-20"
-        autoComplete="off"
-      >
-        <div className="max-w-30 flex flex-col gap-6 justify-start text-zinc-950 rounded-2xl shadow-lg p-9 border">
-          <h2 className="font-bold text-xl uppercase text-center">
-            Nouvelle catégorie
-          </h2>
+    <div className="p-6 space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-semibold">Gestion des catégories</h2>
 
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="nom_categorie"
-              className="font-bold text-lg"
-            >
-              Nom de la catégorie :
-            </label>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              id="nom_categorie"
-              name="nom_categorie"
-              value={categorieInput.nom_categorie}
-              onChange={handleInput}
-              className="bg-zinc-50 px-4 py-2 rounded-md shadow"
-              placeholder="Ex. Materiel Informatique"
-              required
+              placeholder="Rechercher..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 pr-4 py-2 border rounded-lg"
             />
           </div>
 
           <button
-            type="submit"
-            className="
-              rounded-md uppercase font-bold bg-blue-500
-              bg-purple hover:bg-blue-600 focus:ring-2 ring-purple-300
-              shadow-sm px-4 py-2 text-white focus:outline-none ring-offset-2
-              active:bg-blue-600/90
-            "
+            onClick={() => navigate('/dashboard/categorie/new')}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg"
           >
-            Enregistrer
+            <Plus className="w-4 h-4 mr-2" />
+            Nouvelle
           </button>
         </div>
-      </form>
-    </main>
+      </div>
+
+      <div className="bg-white shadow rounded-lg overflow-x-auto">
+        <table className="min-w-full divide-y">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left">ID</th>
+              <th className="px-4 py-2 text-left">Nom</th>
+              <th className="px-4 py-2 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((cat) => (
+              <tr key={cat.id} className="border-t">
+                <td className="px-4 py-2">{cat.id}</td>
+                <td className="px-4 py-2">{cat.type_categorie}</td>
+                <td className="px-4 py-2 flex gap-2">
+  <button
+    onClick={() => navigate(`/dashboard/categorie/${cat.id}/edit`)}
+    className="flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+  >
+    <Edit2 className="w-4 h-4 mr-1" />
+    Éditer
+  </button>
+
+  <button
+    onClick={() => handleDelete(cat.id)}
+    className="flex items-center px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+  >
+    <Trash2 className="w-4 h-4 mr-1" />
+    Supprimer
+  </button>
+</td>
+
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {loading && (
+          <div className="p-4 text-center text-gray-500">
+            Chargement…
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
-export default Categorie;
+export default CategoriesList;
