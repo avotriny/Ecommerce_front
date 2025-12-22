@@ -130,7 +130,7 @@ export default function ListProduit() {
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-white shadow rounded-lg">
+      <div className="overflow-x-auto w-full bg-white shadow rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -157,10 +157,10 @@ export default function ListProduit() {
                   <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
                     <Menu as="div" className="relative inline-block text-left">
                       <Menu.Button className="p-1 hover:bg-gray-100 rounded">…</Menu.Button>
-                      <Menu.Items className="absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg z-10">
+                      <Menu.Items className="absolute right-0 mt-2 min-w-max bg-white border rounded shadow-lg z-10">
                         <Menu.Item>{({ active }) => (
                           <button onClick={()=>navigate(`/dashboard/produit/${p.id}/edit`)}
-                            className={`${active?'bg-gray-100':''} flex items-center w-full px-4 py-2 text-sm text-gray-700`}>
+                            className={`${active?'bg-gray-100':''} flex items-center w-full px-4 py-2 text-sm text-blue-700`}>
                             <Edit2 className="w-4 h-4 mr-2"/> Éditer
                           </button>
                         )}</Menu.Item>

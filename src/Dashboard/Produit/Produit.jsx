@@ -3,40 +3,128 @@ import axios from 'axios';
 import { useValue } from '../../context/ContextProvider';
 import { motion } from 'framer-motion';
 import { Grid, Tag, DollarSign, Box, Image, Truck, Layers } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+
 
 const Produit = () => {
   const [subcategories, setSubcategories] = useState([]);
   const { dispatch } = useValue();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEdit = Boolean(id);
+
   const [produitInput, setProduitInput] = useState({
     subcat_id: '', nom_prod: '', desc_prod: '', prix_prod: '', poids_prod: '', origin_prod: '', promotion: '', prix_promo: '', couleur: '', taille: '', pointure: '', stock_prod: '', images: null,
   });
 
   const handleInput = (e) => {
     const { name, value, files } = e.target;
+  
     setProduitInput((prev) => {
-      const updated = { ...prev, [name]: name === 'images' ? files[0] : value };
-      if ((name === 'promotion' || name === 'prix_prod') && updated.promotion && updated.prix_prod) {
-        updated.prix_promo = ((1 - updated.promotion / 100) * parseFloat(updated.prix_prod)).toFixed(2);
+      const updated = {
+        ...prev,
+        [name]: name === 'images' ? files[0] : value,
+      };
+  
+      const prix = parseFloat(updated.prix_prod);
+      const promo = parseFloat(updated.promotion);
+  
+      if (!isNaN(prix) && !isNaN(promo)) {
+        updated.prix_promo = ((1 - promo / 100) * prix).toFixed(2);
+      } else {
+        updated.prix_promo = '';
       }
+  
       return updated;
     });
   };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     dispatch({ type: 'START_LOADING' });
+  
     try {
       const formData = new FormData();
-      Object.entries(produitInput).forEach(([key, val]) => formData.append(key, val));
-      const { data } = await axios.post('http://localhost:8000/api/produit', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      dispatch({ type: 'UPDATE_ALERT', payload: { open: true, severity: data.status === 200 ? 'success' : 'error', message: data.status === 200 ? 'Produit enregistré avec succès !' : 'Erreur lors de l’enregistrement.' } });
-      if (data.status === 200) setProduitInput({ subcat_id: '', nom_prod: '', desc_prod: '', prix_prod: '', poids_prod: '', origin_prod: '', promotion: '', prix_promo: '', couleur: '', taille: '', pointure: '', stock_prod: '', images: null });
-    } catch {
-      dispatch({ type: 'UPDATE_ALERT', payload: { open: true, severity: 'error', message: 'Impossible de contacter le serveur.' } });
+  
+      Object.entries(produitInput).forEach(([key, val]) => {
+        if (val !== null && val !== '') {
+          formData.append(key, val);
+        }
+      });
+  
+      const token = localStorage.getItem('auth_token');
+
+      if (isEdit) {
+        await axios.post(
+          `http://localhost:8000/api/produit/${id}?_method=PUT`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+      } else {
+        await axios.post(
+          'http://localhost:8000/api/produit',
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+      }
+      
+  
+      dispatch({
+        type: 'UPDATE_ALERT',
+        payload: {
+          open: true,
+          severity: 'success',
+          message: isEdit
+            ? 'Produit modifié avec succès ✏️'
+            : 'Produit ajouté avec succès ✅',
+        },
+      });
+      
+  
+      // Reset form
+      setProduitInput({
+        subcat_id: '',
+        nom_prod: '',
+        desc_prod: '',
+        prix_prod: '',
+        poids_prod: '',
+        origin_prod: '',
+        promotion: '',
+        prix_promo: '',
+        couleur: '',
+        taille: '',
+        pointure: '',
+        stock_prod: '',
+        images: null,
+      });
+  
+    } catch (error) {
+      console.error(error.response?.data);
+  
+      dispatch({
+        type: 'UPDATE_ALERT',
+        payload: {
+          open: true,
+          severity: 'error',
+          message: 'Erreur lors de l’enregistrement du produit ❌',
+        },
+      });
     } finally {
       dispatch({ type: 'END_LOADING' });
     }
   };
+  
 
   useEffect(() => {
     axios.get('http://localhost:8000/api/subcategorie')
@@ -44,10 +132,44 @@ const Produit = () => {
       .catch(() => setSubcategories([]));
   }, []);
 
+  useEffect(() => {
+    if (!isEdit) return;
+  
+    const token = localStorage.getItem('auth_token');
+  
+    axios.get(`http://localhost:8000/api/produit/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      const p = res.data.produit;
+  
+      setProduitInput({
+        subcat_id: p.subcat_id ?? '',
+        nom_prod: p.nom_prod ?? '',
+        desc_prod: p.desc_prod ?? '',
+        prix_prod: p.prix_prod ?? '',
+        poids_prod: p.poids_prod ?? '',
+        origin_prod: p.origin_prod ?? '',
+        promotion: p.promotion ?? '',
+        prix_promo: p.prix_promo ?? '',
+        couleur: p.couleur ?? '',
+        taille: p.taille ?? '',
+        pointure: p.pointure ?? '',
+        stock_prod: p.stock_prod ?? '',
+        images: null, // ⚠️ image jamais pré-remplie
+      });
+    })
+    .catch(err => {
+      console.error(err);
+    });
+  }, [id]);
+  
+
   return (
     <main className="flex items-center justify-center py-12 bg-gradient-to-br from-purple-50 to-purple-100 min-h-screen">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-10">
-        <h2 className="text-3xl font-extrabold text-center text-green-500 mb-8 uppercase tracking-wide">Ajout de Produit</h2>
+        <h2 className="text-3xl font-extrabold text-center text-green-500 mb-8 uppercase tracking-wide">{isEdit ? 'Modification du produit' : 'Ajout de Produit'}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Catégorie */}
@@ -161,7 +283,7 @@ const Produit = () => {
 
           {/* Submit Button */}
           <button type="submit" className="w-full py-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-lg uppercase tracking-wide hover:from-indigo-600 hover:to-green-500 focus:outline-none focus:ring-4 focus:ring-purple-300 transition">
-            Enregistrer le produit
+          {isEdit ? 'Modifier le produit' : 'Enregistrer le produit'}
           </button>
         </form>
       </motion.div>

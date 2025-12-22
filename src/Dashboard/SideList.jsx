@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useValue } from '../context/ContextProvider';
 import { useNavigate } from 'react-router-dom';
-import { GiBed } from 'react-icons/gi';
-import { FiBell, FiChevronLeft, FiLogOut, FiUser, FiHome, FiPackage } from 'react-icons/fi';
+import { BiCategory } from 'react-icons/bi';
+import { MdInventory2 } from 'react-icons/md';
+import { FiChevronLeft, FiLogOut, FiUser, FiHome, FiPackage } from 'react-icons/fi';
 
 const SideList = ({ open, setOpen }) => {
   const { state: { currentUser } } = useValue();
@@ -22,8 +23,8 @@ const SideList = ({ open, setOpen }) => {
       return [
         { id: 1, title: 'User', icon: <FiUser className="h-6 w-6 text-gray-600" />, link: 'user' },
         { id: 2, title: 'Main', icon: <FiHome className="h-6 w-6 text-gray-600" />, link: 'main' },
-        { id: 3, title: 'Categorie', icon: <GiBed className="h-6 w-6 text-gray-600" />, link: 'categorie' },
-        { id: 4, title: 'Produit', icon: <FiBell className="h-6 w-6 text-gray-600" />, link: 'produit' },
+        { id: 3, title: 'Categorie', icon: <BiCategory className="h-6 w-6 text-gray-600" />, link: 'categorie' },
+        { id: 4, title: 'Produit', icon: <MdInventory2 className="h-6 w-6 text-gray-600" />, link: 'produit' },
       ];
     }
     return [
